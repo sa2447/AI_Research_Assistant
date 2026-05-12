@@ -18,6 +18,30 @@ interface UploadDropzoneProps {
 
 type UploadState = 'idle' | 'dragging' | 'uploading' | 'processing' | 'success' | 'error'
 
+async function getApiErrorMessage(response: Response, fallbackMessage: string) {
+  const contentType = response.headers.get('content-type') || ''
+
+  if (contentType.includes('application/json')) {
+    try {
+      const data = (await response.json()) as { error?: unknown }
+      if (typeof data.error === 'string' && data.error.trim()) {
+        return data.error
+      }
+    } catch {
+      // Fall through to plain text parsing.
+    }
+  }
+
+  const text = await response.text()
+  const cleaned = text.trim()
+
+  if (cleaned.length > 0) {
+    return cleaned.length > 250 ? `${cleaned.slice(0, 250)}...` : cleaned
+  }
+
+  return fallbackMessage
+}
+
 export function UploadDropzone({ onUploadComplete }: UploadDropzoneProps) {
   const [state, setState] = useState<UploadState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -58,11 +82,16 @@ export function UploadDropzone({ onUploadComplete }: UploadDropzoneProps) {
         })
 
         if (!response.ok) {
-          const data = await response.json()
-          throw new Error(data.error || 'Upload failed')
+          const message = await getApiErrorMessage(response, 'Upload failed')
+          throw new Error(message)
         }
 
-        const uploadData: UploadData = await response.json()
+        let uploadData: UploadData
+        try {
+          uploadData = (await response.json()) as UploadData
+        } catch {
+          throw new Error('Upload returned an invalid response format')
+        }
         setProgress(50)
 
         // Process embeddings
@@ -79,8 +108,8 @@ export function UploadDropzone({ onUploadComplete }: UploadDropzoneProps) {
         })
 
         if (!embeddingsResponse.ok) {
-          const data = await embeddingsResponse.json()
-          throw new Error(data.error || 'Embedding failed')
+          const message = await getApiErrorMessage(embeddingsResponse, 'Embedding failed')
+          throw new Error(message)
         }
 
         setProgress(100)
