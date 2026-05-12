@@ -1,38 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 Deployed Link: https://is219airesearchassistant.vercel.app/
 
-## Getting Started
+# AI Research Assistant
 
-First, run the development server:
+A production-oriented Next.js application for chatting with uploaded PDF documents using semantic retrieval and AI-generated responses.
+
+## Overview
+
+AI Research Assistant lets users:
+
+- Upload PDF documents.
+- Process documents into chunks and embeddings.
+- Ask questions in a chat interface grounded in document context.
+- Save and revisit chat sessions.
+- Browse a component/showcase area for UI examples.
+
+Core stack:
+
+- Next.js (App Router)
+- React + TypeScript
+- Supabase (storage + database)
+- OpenAI API (embeddings + chat generation)
+- Jest + Testing Library
+
+## Project Structure
+
+Key areas:
+
+- `src/app/api/*`: API routes for upload, retrieval, chat, documents, and saved chats.
+- `src/features/*`: Chat, upload, saved chat, and showcase UI features.
+- `src/lib/openai/*`: OpenAI chat and embeddings clients.
+- `src/lib/retrieval/*`: Context retrieval logic.
+- `src/lib/supabase/*`: Browser/server Supabase clients.
+- `src/hooks/*`: Reusable hooks, including chat behavior.
+
+## Prerequisites
+
+- Node.js 20+
+- npm 10+
+- A Supabase project (URL, anon key, service role key)
+- An OpenAI API key
+
+## Environment Variables
+
+Create a `.env.local` file in the `ai-research-assistant` directory and set:
+
+```bash
+OPENAI_API_KEY=sk-...
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+Notes:
+
+- `NEXT_PUBLIC_*` variables are exposed to the browser.
+- Keep service and API keys private.
+- Do not commit `.env.local`.
+
+## Install Dependencies
+
+From the project root:
+
+```bash
+cd ai-research-assistant
+npm install
+```
+
+## Run the Project (Development)
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `http://localhost:3000`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Useful scripts:
 
-## Learn More
+- `npm run build` - create production build
+- `npm run start` - run production server
+- `npm run lint` - run ESLint checks
 
-To learn more about Next.js, take a look at the following resources:
+## Run Tests
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project uses Jest + Testing Library.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Run all tests:
 
-## Deploy on Vercel
+```bash
+npm test
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Watch mode:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run test:watch
+```
+
+Coverage report:
+
+```bash
+npm run test:coverage
+```
+
+## Typical Development Flow
+
+1. Start Supabase and ensure env vars are set.
+2. Run `npm install`.
+3. Run `npm run dev`.
+4. Upload a PDF and test chat retrieval.
+5. Run `npm run lint` and `npm test` before pushing.
+
+## Current State
+
+The app includes:
+
+- Document upload and deletion.
+- Chat sessions linked to documents.
+- Saved chat workflows.
+- Clear PDF context behavior when context is removed or stale.
+
