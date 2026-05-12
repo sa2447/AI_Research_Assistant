@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, AlertCircle, CheckCircle } from 'lucide-react'
+import { getBrowserSupabaseClient } from '@/lib/supabase/browser'
 
 interface UploadData {
   documentId: string
@@ -10,6 +11,11 @@ interface UploadData {
   storagePath: string
   pageCount: number
   rawText: string
+}
+
+interface SignedUploadData {
+  storagePath: string
+  token: string
 }
 
 interface UploadDropzoneProps {
@@ -73,12 +79,41 @@ export function UploadDropzone({ onUploadComplete }: UploadDropzoneProps) {
       setProgress(0)
 
       try {
-        const formData = new FormData()
-        formData.append('file', file)
+        const signedUploadResponse = await fetch('/api/upload/signed-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type,
+          }),
+        })
+
+        if (!signedUploadResponse.ok) {
+          const message = await getApiErrorMessage(signedUploadResponse, 'Failed to prepare upload')
+          throw new Error(message)
+        }
+
+        const signedData = (await signedUploadResponse.json()) as SignedUploadData
+        const supabase = getBrowserSupabaseClient()
+        const { error: storageError } = await supabase.storage
+          .from('pdfs')
+          .uploadToSignedUrl(signedData.storagePath, signedData.token, file, {
+            contentType: 'application/pdf',
+          })
+
+        if (storageError) {
+          throw new Error(storageError.message || 'Failed to upload file to storage')
+        }
+
+        setProgress(50)
 
         const response = await fetch('/api/upload', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: file.name,
+            storagePath: signedData.storagePath,
+          }),
         })
 
         if (!response.ok) {
@@ -92,8 +127,6 @@ export function UploadDropzone({ onUploadComplete }: UploadDropzoneProps) {
         } catch {
           throw new Error('Upload returned an invalid response format')
         }
-        setProgress(50)
-
         // Process embeddings
         setState('processing')
 
