@@ -7,14 +7,15 @@ export const runtime = 'nodejs'
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
 async function parsePdfWithPdfjs(pdfBuffer: Buffer) {
-  const { PDFParse } = await import('pdf-parse')
-  const parser = new PDFParse({ data: pdfBuffer })
-  const parsed = await parser.getText()
-  await parser.destroy()
+  const pdfParseModule = await import('pdf-parse')
+  const pdfParse = pdfParseModule.default as unknown as (
+    dataBuffer: Buffer
+  ) => Promise<{ text?: string; numpages?: number }>
+  const parsed = await pdfParse(pdfBuffer)
 
   return {
-    rawText: parsed.text,
-    pageCount: parsed.total,
+    rawText: parsed.text ?? '',
+    pageCount: parsed.numpages ?? 0,
   }
 }
 
