@@ -25,6 +25,7 @@ export default function Home() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null)
   const [activeDocumentName, setActiveDocumentName] = useState<string | null>(null)
+  const [documentsCount, setDocumentsCount] = useState<number | null>(null)
   const [isSaved, setIsSaved] = useState(false)
   const [showUploadDropzone, setShowUploadDropzone] = useState(false)
   const [selectedSavedChatId, setSelectedSavedChatId] = useState<
@@ -76,6 +77,50 @@ export default function Home() {
     }
   }, [activeDocumentId, activeDocumentName, activeChatId])
 
+  const clearPdfContext = () => {
+    setActiveDocumentId(null)
+    setActiveDocumentName(null)
+    setActiveChatId(null)
+    setIsSaved(false)
+    resetMessages()
+    localStorage.removeItem('activeDocumentId')
+    localStorage.removeItem('activeDocumentName')
+    localStorage.removeItem('activeChatId')
+  }
+
+  useEffect(() => {
+    if (!mounted || !activeDocumentId) return
+
+    const validateActiveDocument = async () => {
+      try {
+        const response = await fetch('/api/documents')
+        if (!response.ok) return
+
+        const data = await response.json()
+        const docs = Array.isArray(data) ? data : []
+        const stillExists = docs.some((doc) => doc?.id === activeDocumentId)
+
+        if (!stillExists) {
+          clearPdfContext()
+          if (docs.length === 0) {
+            setShowUploadDropzone(true)
+          }
+        }
+      } catch {
+        // Keep current state when validation fails.
+      }
+    }
+
+    validateActiveDocument()
+  }, [mounted, activeDocumentId])
+
+  useEffect(() => {
+    if (!mounted || activeDocumentId) return
+    if (documentsCount === 0) {
+      setShowUploadDropzone(true)
+    }
+  }, [mounted, activeDocumentId, documentsCount])
+
   const handleDocumentSelected = async (
     documentId: string,
     documentName: string,
@@ -124,11 +169,14 @@ export default function Home() {
   }
 
   const handleDocumentDeleted = () => {
-    setActiveDocumentId(null)
-    setActiveDocumentName(null)
-    setActiveChatId(null)
-    setIsSaved(false)
-    resetMessages()
+    clearPdfContext()
+  }
+
+  const handleClearPdfContext = () => {
+    clearPdfContext()
+    if (documentsCount === 0) {
+      setShowUploadDropzone(true)
+    }
   }
 
   const handleClearHistory = () => {
@@ -233,6 +281,9 @@ export default function Home() {
                 <DocumentSelector
                   onDocumentSelected={handleDocumentSelected}
                   onDocumentDeleted={handleDocumentDeleted}
+                  onClearContext={handleClearPdfContext}
+                  onDocumentsCountChange={setDocumentsCount}
+                  selectedDocumentId={activeDocumentId}
                   onUploadClick={() => setShowUploadDropzone(true)}
                   isLoading={isLoading}
                 />
@@ -285,6 +336,9 @@ export default function Home() {
                   <DocumentSelector
                     onDocumentSelected={handleDocumentSelected}
                     onDocumentDeleted={handleDocumentDeleted}
+                    onClearContext={handleClearPdfContext}
+                    onDocumentsCountChange={setDocumentsCount}
+                    selectedDocumentId={activeDocumentId}
                     onUploadClick={() => setShowUploadDropzone(true)}
                     isLoading={isLoading}
                   />

@@ -19,6 +19,9 @@ interface DocumentSelectorProps {
     chatId: string
   ) => Promise<void>
   onDocumentDeleted?: (documentId: string) => void
+  onClearContext?: () => void
+  onDocumentsCountChange?: (count: number) => void
+  selectedDocumentId?: string | null
   onUploadClick: () => void
   isLoading: boolean
 }
@@ -26,6 +29,9 @@ interface DocumentSelectorProps {
 export function DocumentSelector({
   onDocumentSelected,
   onDocumentDeleted,
+  onClearContext,
+  onDocumentsCountChange,
+  selectedDocumentId,
   onUploadClick,
   isLoading,
 }: DocumentSelectorProps) {
@@ -60,7 +66,9 @@ export function DocumentSelector({
         }
 
         const data = await response.json()
-        setDocuments(Array.isArray(data) ? data : [])
+        const nextDocuments = Array.isArray(data) ? data : []
+        setDocuments(nextDocuments)
+        onDocumentsCountChange?.(nextDocuments.length)
       } catch (err) {
         console.error('Failed to fetch documents:',
           err instanceof Error ? err.message : String(err),
@@ -75,7 +83,11 @@ export function DocumentSelector({
     }
 
     fetchDocuments()
-  }, [])
+  }, [onDocumentsCountChange])
+
+  useEffect(() => {
+    setSelectedDocId(selectedDocumentId ?? null)
+  }, [selectedDocumentId])
 
   const handleSelectDocument = (docId: string | null) => {
     if (!docId) return
@@ -138,7 +150,11 @@ export function DocumentSelector({
         throw new Error(message)
       }
 
-      setDocuments((current) => current.filter((item) => item.id !== selectedDocId))
+      setDocuments((current) => {
+        const next = current.filter((item) => item.id !== selectedDocId)
+        onDocumentsCountChange?.(next.length)
+        return next
+      })
       setSelectedDocId(null)
       onDocumentDeleted?.(selectedDocId)
     } catch (err) {
@@ -178,6 +194,14 @@ export function DocumentSelector({
           className="flex gap-2"
         >
           Remove
+        </Button>
+        <Button
+          onClick={onClearContext}
+          variant="outline"
+          size="sm"
+          disabled={!selectedDocId || isFetching || isLoading}
+        >
+          Clear Context
         </Button>
         <Button
           onClick={onUploadClick}
